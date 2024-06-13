@@ -2,7 +2,9 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <pthread.h>
-#include <unistd.h>
+#include <mach/mach.h>
+#include <sys/resource.h>
+#include <sys/time.h>
 
 #define MAX_THREADS 4
 #define BUFFER_SIZE 1024
@@ -42,6 +44,24 @@ void *countPrimes(void *arg) {
     return NULL;
 }
 
+void printMemoryUsage() {
+    mach_task_basic_info_data_t info;
+    mach_msg_type_number_t count = MACH_TASK_BASIC_INFO_COUNT;
+    if (task_info(mach_task_self(), MACH_TASK_BASIC_INFO, (task_info_t)&info, &count) == KERN_SUCCESS) {
+        printf("Memory used: %llu bytes\n", (uint64_t)info.resident_size);
+    } else {
+        printf("Failed to get memory usage info\n");
+    }
+}
+
+void printCPUUsage() {
+    struct rusage usage;
+    getrusage(RUSAGE_SELF, &usage);
+    printf("CPU time: user %ld.%06d sec, system %ld.%06d sec\n",
+           usage.ru_utime.tv_sec, usage.ru_utime.tv_usec,
+           usage.ru_stime.tv_sec, usage.ru_stime.tv_usec);
+}
+
 int main() {
     int buffer[BUFFER_SIZE];
     int prime_count = 0;
@@ -51,6 +71,10 @@ int main() {
 
     int num;
     int index = 0;
+
+    // Print initial memory and CPU usage
+    printMemoryUsage();
+    printCPUUsage();
 
     while (scanf("%d", &num) != EOF) {
         buffer[index++] = num;
@@ -96,6 +120,10 @@ int main() {
     }
 
     printf("%d total primes.\n", prime_count);
+
+    // Print final memory and CPU usage
+    printMemoryUsage();
+    printCPUUsage();
 
     return 0;
 }

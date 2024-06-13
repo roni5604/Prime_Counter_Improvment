@@ -108,14 +108,23 @@ time ./randomGenerator 10 10000000 | ./primeCounter
 
 **Output:**
 ```
+Memory used: 917504 bytes
+CPU time: user 0.000874 sec, system 0.001638 sec
 492653 total primes.
-./randomGenerator 10 10000000  0.74s user 0.03s system 19% cpu 3.869 total
-./primeCounter  7.03s user 0.88s system 204% cpu 3.871 total
+Memory used: 1032192 bytes
+CPU time: user 7.185987 sec, system 0.838499 sec
+./randomGenerator 10 10000000  0.76s user 0.02s system 16% cpu 4.671 total
+./primeCounter  7.19s user 0.84s system 171% cpu 4.674 total
 ```
 
 ### Memory Usage
 
 Use `top` or `htop` to verify that the memory usage stays below 2MB.
+
+**Example using `top`:**
+1. Open another terminal.
+2. Run `top`.
+3. Look for the `primeCounter` process and observe its memory usage.
 
 ## Conclusion
 
@@ -124,4 +133,3 @@ This project demonstrates effective utilization of multithreading to improve the
 ## Author
 
 Prepared by Roni Michaeli
-
