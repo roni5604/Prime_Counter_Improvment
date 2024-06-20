@@ -2,101 +2,159 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <pthread.h>
-#include <mach/mach.h>
-#include <sys/resource.h>
-#include <sys/time.h>
-#include "lock_free_queue.h"
+#include <stdatomic.h>
+#include <unistd.h>
 
-#define MAX_THREADS 4
+#define MAX_QUEUE_SIZE 512 // Adjusted to ensure we stay within 2MB limit with overhead
+#define NUM_THREADS 4
 
+// Node structure for the queue
+typedef struct Node {
+    int value;
+    struct Node *next;
+} Node;
+
+// Lock-free queue structure
 typedef struct {
-    LockFreeQueue *queue;
-    int *prime_count;
-} ThreadData;
+    Node *head;
+    Node *tail;
+    atomic_int size;
+} Queue;
 
+// Function to check if a number is prime
 bool isPrime(int n) {
-    if (n <= 1) return false;
-    if (n <= 3) return true;
-    if (n % 2 == 0 || n % 3 == 0) return false;
-    for (int i = 5; i * i <= n; i += 6) {
-        if (n % i == 0 || n % (i + 2) == 0) return false;
+    if (n <= 1) {
+        return false;
+    }
+    for (int i = 2; i * i <= n; i++) {
+        if (n % i == 0) {
+            return false;
+        }
     }
     return true;
 }
 
-void *countPrimes(void *arg) {
-    ThreadData *data = (ThreadData *)arg;
-    int value;
+// Initialize the queue
+Queue* createQueue() {
+    Queue *queue = (Queue*)malloc(sizeof(Queue));
+    Node *dummy = (Node*)malloc(sizeof(Node));
+    dummy->next = NULL;
+    queue->head = queue->tail = dummy;
+    atomic_init(&queue->size, 0);
+    return queue;
+}
+
+// Enqueue operation (lock-free)
+void enqueue(Queue *queue, int value) {
+    Node *newNode = (Node*)malloc(sizeof(Node));
+    newNode->value = value;
+    newNode->next = NULL;
+    Node *tail;
 
     while (1) {
-        if (dequeue(data->queue, &value)) {
-            if (value == -1) break; // Sentinel value to stop the thread
-            if (isPrime(value)) {
-                __sync_add_and_fetch(data->prime_count, 1);
+        tail = queue->tail;
+        Node *next = tail->next;
+        if (tail == queue->tail) {
+            if (next == NULL) {
+                if (__sync_bool_compare_and_swap(&tail->next, next, newNode)) {
+                    __sync_bool_compare_and_swap(&queue->tail, tail, newNode);
+                    atomic_fetch_add(&queue->size, 1);
+                    return;
+                }
+            } else {
+                __sync_bool_compare_and_swap(&queue->tail, tail, next);
             }
         }
     }
+}
 
+// Dequeue operation (lock-free)
+int dequeue(Queue *queue) {
+    Node *head;
+    while (1) {
+        head = queue->head;
+        Node *tail = queue->tail;
+        Node *next = head->next;
+        if (head == queue->head) {
+            if (head == tail) {
+                if (next == NULL) {
+                    return -1; // Queue is empty
+                }
+                __sync_bool_compare_and_swap(&queue->tail, tail, next);
+            } else {
+                int value = next->value;
+                if (__sync_bool_compare_and_swap(&queue->head, head, next)) {
+                    atomic_fetch_sub(&queue->size, 1);
+                    free(head);
+                    return value;
+                }
+            }
+        }
+    }
+}
+
+// Structure to hold the prime counting state
+typedef struct {
+    Queue *queue;
+    atomic_int *total_counter;
+    atomic_bool *done;
+} PrimeCounterState;
+
+// Worker thread function to count primes
+void* primeCounterWorker(void *arg) {
+    PrimeCounterState *state = (PrimeCounterState*)arg;
+    int num;
+
+    while (!atomic_load(state->done) || atomic_load(&state->queue->size) > 0) {
+        num = dequeue(state->queue);
+        if (num == -1) {
+            usleep(100); // Sleep briefly to avoid busy-waiting
+            continue;
+        }
+        if (isPrime(num)) {
+            atomic_fetch_add(state->total_counter, 1);// Increment the total counter
+        }
+    }
     return NULL;
 }
 
-void printMemoryUsage(const char* tag) {
-    mach_task_basic_info_data_t info;
-    mach_msg_type_number_t count = MACH_TASK_BASIC_INFO_COUNT;
-    if (task_info(mach_task_self(), MACH_TASK_BASIC_INFO, (task_info_t)&info, &count) == KERN_SUCCESS) {
-        printf("%s Memory used: %llu bytes\n", tag, (uint64_t)info.resident_size);
-    } else {
-        printf("%s Failed to get memory usage info\n", tag);
-    }
-}
-
-void printCPUUsage(const char* tag) {
-    struct rusage usage;
-    getrusage(RUSAGE_SELF, &usage);
-    printf("%s CPU time: user %ld.%06d sec, system %ld.%06d sec\n",
-           tag, usage.ru_utime.tv_sec, usage.ru_utime.tv_usec,
-           usage.ru_stime.tv_sec, usage.ru_stime.tv_usec);
-}
-
 int main() {
-    LockFreeQueue queue;
-    initQueue(&queue);
+    Queue *queue = createQueue();
+    atomic_int total_counter = 0;
+    atomic_bool done = false;
 
-    int prime_count = 0;
-    pthread_t threads[MAX_THREADS];
-    ThreadData thread_data[MAX_THREADS];
+    // Set up state for worker threads
+    PrimeCounterState state = {queue, &total_counter, &done};
 
-    for (int i = 0; i < MAX_THREADS; i++) {
-        thread_data[i].queue = &queue;
-        thread_data[i].prime_count = &prime_count;
-        pthread_create(&threads[i], NULL, countPrimes, &thread_data[i]);
+    // Create worker threads
+    pthread_t threads[NUM_THREADS];
+    for (int i = 0; i < NUM_THREADS; i++) {
+        pthread_create(&threads[i], NULL, primeCounterWorker, &state);
     }
-
-    // Print initial memory and CPU usage
-    printMemoryUsage("Initial");
-    printCPUUsage("Initial");
 
     int num;
+    int total_numbers = 0;
     while (scanf("%d", &num) != EOF) {
-        enqueue(&queue, num);
+        while (atomic_load(&queue->size) >= MAX_QUEUE_SIZE) {
+            usleep(100); // Wait if the queue is full
+        }
+        enqueue(queue, num);
+        total_numbers++;
     }
 
-    // Signal threads to stop by enqueueing a sentinel value
-    for (int i = 0; i < MAX_THREADS; i++) {
-        enqueue(&queue, -1);
-    }
+    // Signal to threads that processing is done
+    atomic_store(&done, true);
 
-    for (int i = 0; i < MAX_THREADS; i++) {
+    // Wait for all threads to finish
+    for (int i = 0; i < NUM_THREADS; i++) {
         pthread_join(threads[i], NULL);
     }
 
-    printf("%d total primes.\n", prime_count);
+    printf("%d total primes.\n", atomic_load(&total_counter));
 
-    // Print final memory and CPU usage
-    printMemoryUsage("Final");
-    printCPUUsage("Final");
-
-    destroyQueue(&queue);
+    // Clean up
+    free(queue->head);
+    free(queue);
 
     return 0;
 }
