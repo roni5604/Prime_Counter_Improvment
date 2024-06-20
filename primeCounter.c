@@ -4,6 +4,8 @@
 #include <pthread.h>
 #include <stdatomic.h>
 #include <unistd.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 
 #define MAX_QUEUE_SIZE 512 // Adjusted to ensure we stay within 2MB limit with overhead
 #define NUM_THREADS 4
@@ -112,10 +114,24 @@ void* primeCounterWorker(void *arg) {
             continue;
         }
         if (isPrime(num)) {
-            atomic_fetch_add(state->total_counter, 1);// Increment the total counter
+            atomic_fetch_add(state->total_counter, 1);
         }
     }
     return NULL;
+}
+
+// Function to print resource usage
+void printResourceUsage() {
+    struct rusage usage;
+    getrusage(RUSAGE_SELF, &usage);
+    printf("CPU time: User = %ld.%06ld, System = %ld.%06ld\n",
+        usage.ru_utime.tv_sec, (long)usage.ru_utime.tv_usec,
+        usage.ru_stime.tv_sec, (long)usage.ru_stime.tv_usec);
+    printf("Max resident set size: %ld KB\n", usage.ru_maxrss);
+    printf("Page faults: %ld (I/O: %ld)\n",
+        usage.ru_majflt, usage.ru_minflt);
+    printf("Voluntary context switches: %ld\n", usage.ru_nvcsw);
+    printf("Involuntary context switches: %ld\n", usage.ru_nivcsw);
 }
 
 int main() {
@@ -150,7 +166,11 @@ int main() {
         pthread_join(threads[i], NULL);
     }
 
+    printf("Processed %d numbers.\n", total_numbers);
     printf("%d total primes.\n", atomic_load(&total_counter));
+
+    // Print resource usage
+    printResourceUsage();
 
     // Clean up
     free(queue->head);

@@ -1,22 +1,21 @@
-
 # Prime Number Detection with Multithreading
 
 ## Overview
 
-This project involves counting prime numbers from a continuous data stream, simulating a real-time security camera feed where intrusions need to be detected quickly. The aim is to utilize multithreading to process the data efficiently, ensuring maximum CPU utilization while maintaining memory usage below 2MB.
+This project aims to efficiently count prime numbers from a continuous data stream, simulating a real-time security camera feed where intrusions need to be detected quickly. The goal is to use multithreading to process the data stream efficiently, ensuring maximum CPU utilization while keeping memory usage below 2MB.
 
 ## Task Description
 
-You are given two files:
-1. **randomGenerator.c** - A random number generator simulating the endless data stream.
-2. **primeCounter.c** - A basic implementation of a prime number counter.
+You are provided with two main components:
+1. **randomGenerator**: A random number generator simulating the endless data stream.
+2. **primeCounter**: A basic implementation of a prime number counter.
 
-The goal is to:
+### Goals
 1. Optimize the `isPrime` function if necessary.
 2. Implement multithreading to parallelize the prime number counting process.
 3. Ensure that the solution uses no more than 2MB of RAM.
 
-Performance criteria:
+### Performance Criteria
 - Achieve at least 4 times better performance without optimizing `isPrime`.
 - Achieve at least 10 times better performance with an optimized `isPrime`.
 
@@ -24,7 +23,7 @@ Performance criteria:
 
 ### randomGenerator.c
 
-This file generates a stream of random numbers within a specified range.
+This file generates a stream of random numbers based on a provided seed and count.
 
 **Usage:**
 ```sh
@@ -37,12 +36,11 @@ This file generates a stream of random numbers within a specified range.
 
 ### primeCounter.c
 
-This file counts the number of prime numbers from the input stream. The original implementation is single-threaded.
+This file reads numbers from standard input, checks for prime numbers, and counts them. The original implementation is single-threaded.
 
-**Improved Implementation:**
-
-- **Optimized `isPrime` function:** A more efficient algorithm to check for prime numbers.
-- **Multithreading:** The data stream is processed in parallel using multiple threads to utilize all CPU cores efficiently.
+**Improvements:**
+- **Optimized `isPrime` Function:** Uses a more efficient algorithm to check for prime numbers.
+- **Multithreading:** Processes the data stream in parallel using multiple threads to utilize all CPU cores efficiently.
 
 **Usage:**
 ```sh
@@ -85,37 +83,17 @@ time ./randomGenerator 10 10000000 | ./primeCounter
 
 Use `top` or `htop` to monitor memory usage during execution.
 
-## Performance Results
+## Monitoring Resource Usage
 
-### Provided primeCounter (Reference)
+To monitor CPU and memory usage, a Python script (`monitor_resources.py`) is used, which runs the `randomGenerator` and `primeCounter`, capturing and displaying resource usage statistics.
 
-```sh
-time ./randomGenerator 10 10000000 | ./primeCounter
-```
 
-**Output:**
-```
-492653 total primes.
-./randomGenerator 10 10000000  0.74s user 0.03s system 19% cpu 3.869 total
-./primeCounter  7.03s user 0.88s system 204% cpu 3.871 total
-```
+### Running the Monitoring Script
 
-### Improved primeCounter (Optimized)
-
-```sh
-time ./randomGenerator 10 10000000 | ./primeCounter
-```
-
-**Output:**
-```
-Memory used: 917504 bytes
-CPU time: user 0.000874 sec, system 0.001638 sec
-492653 total primes.
-Memory used: 1032192 bytes
-CPU time: user 7.185987 sec, system 0.838499 sec
-./randomGenerator 10 10000000  0.76s user 0.02s system 16% cpu 4.671 total
-./primeCounter  7.19s user 0.84s system 171% cpu 4.674 total
-```
+1. **Run the Monitoring Script**:
+    ```sh
+    python3 monitor_resources.py
+    ```
 
 ### Memory Usage
 
