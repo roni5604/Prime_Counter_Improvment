@@ -23,18 +23,52 @@ typedef struct {
     atomic_int size;
 } Queue;
 
-// Function to check if a number is prime
+/*
+ * Optimized Prime Checking Function
+ * 
+ * Techniques Used:
+ * 1. Early Exit for Small Numbers:
+ *    - Directly return false for numbers <= 1.
+ *    - Directly return true for numbers 2 and 3 (smallest primes).
+ *    - Eliminate multiples of 2 and 3 early.
+ *
+ * 2. 6k ± 1 Optimization:
+ *    - Any integer can be expressed in the form 6k + i where i is one of 0, 1, 2, 3, 4, 5.
+ *    - All primes greater than 3 can be expressed as 6k ± 1.
+ *    - This allows us to skip checking numbers that are not of the form 6k ± 1, reducing the number of iterations.
+ *
+ * 3. Square Root Boundary:
+ *    - We only need to check for factors up to the square root of n.
+ *    - If n has a factor larger than its square root, it must also have a smaller factor.
+ */
 bool isPrime(int n) {
-    if (n <= 1) {
-        return false;
-    }
-    for (int i = 2; i * i <= n; i++) {
-        if (n % i == 0) {
+    if (n <= 1) return false;
+    if (n <= 3) return true; // 2 and 3 are prime
+    if (n % 2 == 0 || n % 3 == 0) return false; // eliminate multiples of 2 and 3
+
+    // Check from 5 to sqrt(n), in steps of 6
+    for (int i = 5; i * i <= n; i += 6) {
+        if (n % i == 0 || n % (i + 2) == 0) {
             return false;
         }
     }
     return true;
 }
+
+
+
+// // Function to check if a number is prime
+// bool isPrime(int n) {
+//     if (n <= 1) {
+//         return false;
+//     }
+//     for (int i = 2; i * i <= n; i++) {
+//         if (n % i == 0) {
+//             return false;
+//         }
+//     }
+//     return true;
+// }
 
 // Initialize the queue
 Queue* createQueue() {
