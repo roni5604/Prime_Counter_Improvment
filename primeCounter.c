@@ -6,9 +6,9 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include <sys/resource.h>
+#include <sys/sysinfo.h>
 
 #define MAX_QUEUE_SIZE 512 // Adjusted to ensure we stay within 2MB limit with overhead
-#define NUM_THREADS 4
 
 // Node structure for the queue
 typedef struct Node {
@@ -54,21 +54,6 @@ bool isPrime(int n) {
     }
     return true;
 }
-
-
-
-// // Function to check if a number is prime
-// bool isPrime(int n) {
-//     if (n <= 1) {
-//         return false;
-//     }
-//     for (int i = 2; i * i <= n; i++) {
-//         if (n % i == 0) {
-//             return false;
-//         }
-//     }
-//     return true;
-// }
 
 // Initialize the queue
 Queue* createQueue() {
@@ -176,9 +161,17 @@ int main() {
     // Set up state for worker threads
     PrimeCounterState state = {queue, &total_counter, &done};
 
-    // Create worker threads
-    pthread_t threads[NUM_THREADS];
-    for (int i = 0; i < NUM_THREADS; i++) {
+    // Determine the number of CPU cores
+    long numCPU = sysconf(_SC_NPROCESSORS_ONLN);
+    if (numCPU < 1) {
+        numCPU = 1; // Fallback to at least one thread if detection fails
+    }
+
+    printf("Detected %ld CPU cores.\n", numCPU);
+    
+    // Create worker threads based on the number of CPU cores
+    pthread_t threads[numCPU];
+    for (long i = 0; i < numCPU; i++) {
         pthread_create(&threads[i], NULL, primeCounterWorker, &state);
     }
 
@@ -196,7 +189,7 @@ int main() {
     atomic_store(&done, true);
 
     // Wait for all threads to finish
-    for (int i = 0; i < NUM_THREADS; i++) {
+    for (long i = 0; i < numCPU; i++) {
         pthread_join(threads[i], NULL);
     }
 
