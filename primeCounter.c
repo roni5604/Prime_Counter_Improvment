@@ -58,7 +58,15 @@ bool isPrime(int n) {
 // Initialize the queue
 Queue* createQueue() {
     Queue *queue = (Queue*)malloc(sizeof(Queue));
+    if (!queue) {
+        fprintf(stderr, "Failed to allocate memory for queue.\n");
+        exit(EXIT_FAILURE);
+    }
     Node *dummy = (Node*)malloc(sizeof(Node));
+    if (!dummy) {
+        fprintf(stderr, "Failed to allocate memory for dummy node.\n");
+        exit(EXIT_FAILURE);
+    }
     dummy->next = NULL;
     queue->head = queue->tail = dummy;
     atomic_init(&queue->size, 0);
@@ -68,6 +76,10 @@ Queue* createQueue() {
 // Enqueue operation (lock-free)
 void enqueue(Queue *queue, int value) {
     Node *newNode = (Node*)malloc(sizeof(Node));
+    if (!newNode) {
+        fprintf(stderr, "Failed to allocate memory for new node.\n");
+        exit(EXIT_FAILURE);
+    }
     newNode->value = value;
     newNode->next = NULL;
     Node *tail;
@@ -151,6 +163,7 @@ void printResourceUsage() {
         usage.ru_majflt, usage.ru_minflt);
     printf("Voluntary context switches: %ld\n", usage.ru_nvcsw);
     printf("Involuntary context switches: %ld\n", usage.ru_nivcsw);
+    printf("RAM usage: %.2f MB\n", usage.ru_maxrss / 1024.0); // Print RAM usage in MB
 }
 
 int main() {
@@ -168,11 +181,18 @@ int main() {
     }
 
     printf("Detected %ld CPU cores.\n", numCPU);
-    
+
     // Create worker threads based on the number of CPU cores
-    pthread_t threads[numCPU];
+    pthread_t *threads = (pthread_t*)malloc(numCPU * sizeof(pthread_t));
+    if (!threads) {
+        fprintf(stderr, "Failed to allocate memory for threads.\n");
+        exit(EXIT_FAILURE);
+    }
     for (long i = 0; i < numCPU; i++) {
-        pthread_create(&threads[i], NULL, primeCounterWorker, &state);
+        if (pthread_create(&threads[i], NULL, primeCounterWorker, &state) != 0) {
+            fprintf(stderr, "Failed to create thread %ld.\n", i);
+            exit(EXIT_FAILURE);
+        }
     }
 
     int num;
@@ -202,6 +222,7 @@ int main() {
     // Clean up
     free(queue->head);
     free(queue);
+    free(threads);
 
     return 0;
 }
