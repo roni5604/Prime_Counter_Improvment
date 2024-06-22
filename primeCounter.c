@@ -8,7 +8,7 @@
 #include <sys/resource.h>
 #include <sys/sysinfo.h>
 
-#define MAX_QUEUE_SIZE 512 // Adjusted to ensure we stay within 2MB limit with overhead
+#define MAX_QUEUE_SIZE 256 // Adjusted to ensure we stay within 2MB limit with overhead
 
 // Node structure for the queue
 typedef struct Node {
@@ -151,20 +151,6 @@ void* primeCounterWorker(void *arg) {
     return NULL;
 }
 
-// Function to print resource usage
-void printResourceUsage() {
-    struct rusage usage;
-    getrusage(RUSAGE_SELF, &usage);
-    printf("CPU time: User = %ld.%06ld, System = %ld.%06ld\n",
-        usage.ru_utime.tv_sec, (long)usage.ru_utime.tv_usec,
-        usage.ru_stime.tv_sec, (long)usage.ru_stime.tv_usec);
-    printf("Max resident set size: %ld KB\n", usage.ru_maxrss);
-    printf("Page faults: %ld (I/O: %ld)\n",
-        usage.ru_majflt, usage.ru_minflt);
-    printf("Voluntary context switches: %ld\n", usage.ru_nvcsw);
-    printf("Involuntary context switches: %ld\n", usage.ru_nivcsw);
-    printf("RAM usage: %.2f MB\n", usage.ru_maxrss / 1024.0); // Print RAM usage in MB
-}
 
 int main() {
     Queue *queue = createQueue();
@@ -179,8 +165,6 @@ int main() {
     if (numCPU < 1) {
         numCPU = 1; // Fallback to at least one thread if detection fails
     }
-
-    printf("Detected %ld CPU cores.\n", numCPU);
 
     // Create worker threads based on the number of CPU cores
     pthread_t *threads = (pthread_t*)malloc(numCPU * sizeof(pthread_t));
@@ -213,11 +197,7 @@ int main() {
         pthread_join(threads[i], NULL);
     }
 
-    printf("Processed %d numbers.\n", total_numbers);
     printf("%d total primes.\n", atomic_load(&total_counter));
-
-    // Print resource usage
-    printResourceUsage();
 
     // Clean up
     free(queue->head);
