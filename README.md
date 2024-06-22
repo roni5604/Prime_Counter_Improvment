@@ -108,6 +108,6 @@ Use `top` or `htop` to verify that the memory usage stays below 2MB.
 
 This project demonstrates effective utilization of multithreading to improve the performance of a prime number detection algorithm in a continuous data stream. By optimizing the `isPrime` function and parallelizing the processing, significant performance gains were achieved while keeping the memory usage within the specified limits.
 
-## Author
+## Authors
 
-Prepared by Roni Michaeli
+Roni Michaeli and Elor Israeli
