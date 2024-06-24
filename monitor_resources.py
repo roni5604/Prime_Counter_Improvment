@@ -33,14 +33,19 @@ def run_process(seed, num_of_numbers):
     plt.show()
     plt.pause(1)  # Pause to ensure the graph is displayed
 
-    # Start the subprocess
-    cmd = f'./randomGenerator {seed} {num_of_numbers} | ./primeCounter'
-    process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    ps_process = psutil.Process(process.pid)
+    # Start the randomGenerator subprocess
+    cmd_gen = f'./randomGenerator {seed} {num_of_numbers}'
+    process_gen = subprocess.Popen(cmd_gen, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    # Start the primeCounter subprocess and pipe the output of randomGenerator to it
+    process_prime = subprocess.Popen('./primeCounter', shell=True, stdin=process_gen.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    ps_process_prime = psutil.Process(process_prime.pid)
+
+    process_gen.stdout.close()  # Allow randomGenerator to receive a SIGPIPE if primeCounter exits
 
     try:
         while True:
-            if process.poll() is not None:
+            if process_prime.poll() is not None:
                 print("Process has completed.")
                 break
 
@@ -48,11 +53,11 @@ def run_process(seed, num_of_numbers):
             times.append(current_time)
 
             # Get specific memory usage of the subprocess
-            memory_info = ps_process.memory_info()
+            memory_info = ps_process_prime.memory_info()
             memory_usage.append(memory_info.rss / 1024 ** 2)  # Convert bytes to MB
 
-            # Get specific CPU usage of the subprocess
-            cpu_usage.append(ps_process.cpu_percent(interval=0.1))
+            # Get system-wide CPU usage
+            cpu_usage.append(psutil.cpu_percent(interval=0.1))
 
             # Plot updates
             plt.clf()
@@ -77,7 +82,7 @@ def run_process(seed, num_of_numbers):
 
     finally:
         # Capture stdout and stderr from the process
-        stdout, stderr = process.communicate()
+        stdout, stderr = process_prime.communicate()
         if stdout:
             print(stdout.decode())
         if stderr:
