@@ -38,7 +38,7 @@ def run_process(seed, num_of_numbers):
     process_gen = subprocess.Popen(cmd_gen, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     # Start the primeCounter subprocess and pipe the output of randomGenerator to it
-    process_prime = subprocess.Popen('./primeCounter', shell=True, stdin=process_gen.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    process_prime = subprocess.Popen('./new_primeCounter', shell=True, stdin=process_gen.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     ps_process_prime = psutil.Process(process_prime.pid)
 
     process_gen.stdout.close()  # Allow randomGenerator to receive a SIGPIPE if primeCounter exits
