@@ -2,6 +2,10 @@ import subprocess
 import psutil
 import time
 import matplotlib.pyplot as plt
+import matplotlib
+
+# Set the backend to TkAgg
+matplotlib.use('TkAgg')
 
 def run_process(seed, num_of_numbers):
     # Setup plotting
@@ -27,6 +31,7 @@ def run_process(seed, num_of_numbers):
     plt.legend()
 
     plt.show()
+    plt.pause(1)  # Pause to ensure the graph is displayed
 
     # Start the subprocess
     cmd = f'./randomGenerator {seed} {num_of_numbers} | ./primeCounter'
@@ -46,8 +51,8 @@ def run_process(seed, num_of_numbers):
             memory_info = ps_process.memory_info()
             memory_usage.append(memory_info.rss / 1024 ** 2)  # Convert bytes to MB
 
-            # Get system-wide CPU usage
-            cpu_usage.append(psutil.cpu_percent())
+            # Get specific CPU usage of the subprocess
+            cpu_usage.append(ps_process.cpu_percent(interval=0.1))
 
             # Plot updates
             plt.clf()
@@ -110,5 +115,3 @@ if __name__ == '__main__':
         run_process(seed, num_of_numbers)
     except ValueError:
         print("Please enter valid integers for seed and number of numbers.")
-
-
