@@ -65,6 +65,7 @@ Queue* createQueue() {
     Node *dummy = (Node*)malloc(sizeof(Node));
     if (!dummy) {
         fprintf(stderr, "Failed to allocate memory for dummy node.\n");
+        free(queue); // Ensure memory cleanup
         exit(EXIT_FAILURE);
     }
     dummy->next = NULL;
@@ -177,11 +178,15 @@ int main() {
     pthread_t *threads = (pthread_t*)malloc(numCPU * sizeof(pthread_t));
     if (!threads) {
         fprintf(stderr, "Failed to allocate memory for threads.\n");
+        free(queue); // Ensure memory cleanup
         exit(EXIT_FAILURE);
     }
     for (long i = 0; i < numCPU; i++) {
         if (pthread_create(&threads[i], NULL, primeCounterWorker, &state) != 0) {
             fprintf(stderr, "Failed to create thread %ld.\n", i);
+            free(threads);
+            freeQueue(queue);
+            free(queue);
             exit(EXIT_FAILURE);
         }
     }
