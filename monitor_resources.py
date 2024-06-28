@@ -9,7 +9,8 @@ matplotlib.use('TkAgg')
 
 def run_process(seed, num_of_numbers):
     # Setup plotting
-    plt.figure(figsize=(10, 5))
+    fig = plt.figure(figsize=(10, 5))
+    fig.canvas.manager.set_window_title("Live usages of CPU and RAM")  # Set the window title
     plt.ion()  # Turn on interactive mode
 
     times, memory_usage, cpu_usage = [], [], []
@@ -31,7 +32,7 @@ def run_process(seed, num_of_numbers):
     plt.legend()
 
     plt.show()
-    plt.pause(1)  # Pause to ensure the graph is displayed
+    # plt.pause(1)  # Pause to ensure the graph is displayed
 
     # Start the randomGenerator subprocess
     cmd_gen = f'./randomGenerator {seed} {num_of_numbers}'
@@ -108,6 +109,7 @@ def run_process(seed, num_of_numbers):
         plt.legend()
 
         plt.tight_layout()
+        # Set the title
         plt.show()  # Display the final plot
 
 if __name__ == '__main__':
