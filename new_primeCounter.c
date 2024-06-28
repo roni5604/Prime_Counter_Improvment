@@ -151,6 +151,13 @@ void* primeCounterWorker(void *arg) {
     return NULL;
 }
 
+void freeQueue(Queue *queue) {
+    while (queue->head != NULL) {
+        Node *temp = queue->head;
+        queue->head = queue->head->next;
+        free(temp);
+    }
+}
 
 int main() {
     Queue *queue = createQueue();
@@ -200,7 +207,7 @@ int main() {
     printf("%d total primes.\n", atomic_load(&total_counter));
 
     // Clean up
-    free(queue->head);
+    freeQueue(queue);
     free(queue);
     free(threads);
 
