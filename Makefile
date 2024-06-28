@@ -7,7 +7,7 @@ generator: generator.c
 primeCounter: primeCounter.c
 	gcc -o primeCounter primeCounter.c
 
-new_primeCounter: new_primeCounter.c lock_free_queue.h
+new_primeCounter: new_primeCounter.c
 	gcc -o new_primeCounter new_primeCounter.c -pthread
 
 .PHONY: clean
