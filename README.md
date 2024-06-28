@@ -2,92 +2,123 @@
 
 ## Overview
 
-This project aims to efficiently count prime numbers from a continuous data stream, simulating a real-time security camera feed where intrusions need to be detected quickly. The goal is to use multithreading to process the data stream efficiently, ensuring maximum CPU utilization while keeping memory usage below 2MB.
+This project aims to create a highly efficient and parallelized prime number counter using a random number generator to simulate an endless data stream. The goal is to optimize the prime checking process, utilizing multiple CPU cores while maintaining a low memory footprint under 2MB.
 
-## Task Description
+## Features
 
-You are provided with two main components:
-1. **randomGenerator**: A random number generator simulating the endless data stream.
-2. **primeCounter**: A basic implementation of a prime number counter.
-
-### Goals
-1. Optimize the `isPrime` function if necessary.
-2. Implement multithreading to parallelize the prime number counting process.
-3. Ensure that the solution uses no more than 2MB of RAM.
-
-### Performance Criteria
-- Achieve at least 4 times better performance without optimizing `isPrime`.
-- Achieve at least 10 times better performance with an optimized `isPrime`.
+- Efficient random number generation.
+- Optimized prime number checking.
+- Parallel processing using multiple threads.
+- Lock-free queue implementation for efficient inter-thread communication.
+- Memory pool to manage node allocations and maintain a low memory footprint.
 
 ## Files
 
-### randomGenerator.c
+- `generator.c`: Generates a specified number of random numbers within a given range.
+- `primeCounter.c`: Basic implementation of the prime counter.
+- `new_primeCounter.c`: Optimized and parallelized implementation of the prime counter.
+- `Makefile`: Compilation instructions for the project.
+- `monitor_resources.py`: Python script to monitor CPU and memory usage.
+- `proofs` folder: Contains screenshots proving the solution's efficiency and memory usage.
 
-This file generates a stream of random numbers based on a provided seed and count.
+## Getting Started
 
-**Usage:**
-```sh
+### Prerequisites
+
+- GCC compiler
+- Python 3
+- psutil library (`pip install psutil`)
+- matplotlib library (`pip install matplotlib`)
+
+### Compilation
+
+To compile the project, navigate to the project directory and run:
+
+```bash
+make
+```
+
+This will compile the following executables:
+
+- `randomGenerator`: Random number generator.
+- `primeCounter`: Basic prime counter.
+- `new_primeCounter`: Optimized prime counter.
+
+### Usage
+
+1. **Generate Random Numbers**
+
+```bash
 ./randomGenerator <seed> <count>
 ```
-**Example:**
-```sh
-./randomGenerator 10 10
+
+- `<seed>`: Seed for the random number generator.
+- `<count>`: Number of random numbers to generate.
+
+Example:
+
+```bash
+./randomGenerator 10 100
 ```
 
-### primeCounter.c
+2. **Count Primes Using Basic Prime Counter**
 
-This file reads numbers from standard input, checks for prime numbers, and counts them. The original implementation is single-threaded.
-- **`isPrime` Function:** simple check for prime numbers.
-
-**Usage:**
-```sh
+```bash
 ./randomGenerator <seed> <count> | ./primeCounter
 ```
-**Example:**
-```sh
+
+Example:
+
+```bash
 ./randomGenerator 10 100 | ./primeCounter
 ```
 
-### new_primeCounter.c
+3. **Count Primes Using Optimized Prime Counter**
 
-This file reads numbers from standard input, checks for prime numbers, and counts them. The improved implementation with multi-threading.
-
-**Improvements:**
-- **Optimized `isPrime` Function:** Uses a more efficient algorithm to check for prime numbers.
-- **Multithreading:** Processes the data stream in parallel using multiple threads to utilize all CPU cores efficiently.
-
-**Usage:**
-```sh
+```bash
 ./randomGenerator <seed> <count> | ./new_primeCounter
 ```
-**Example:**
-```sh
+
+Example:
+
+```bash
 ./randomGenerator 10 100 | ./new_primeCounter
 ```
 
-### Makefile
+### Monitoring Resources
 
-The Makefile automates the compilation process for all relevant files: the random number generator, the original prime counter and the improved prime counter (the new).
+To prove that the solution maintains a low memory footprint and monitors CPU usage, use the `monitor_resources.py` script. This script can be used as follows:
 
-**Commands:**
-- `make all` - Compiles `randomGenerator`, `primeCounter` and `new_primeCounter`.
-- `make clean` - Cleans up the compiled binaries.
-
-## Compilation and Execution
-
-### Step 1: Compile the Programs
-
-```sh
-make all
+```bash
+python3 monitor_resources.py
 ```
 
-### Step 2: Run the Random Number Generator and Prime Counter
+Follow the prompts to enter the seed value and the number of random numbers to generate.
 
-```sh
-./randomGenerator 10 10000000 | ./primeCounter
-```
+## Optimizations
 
-### Step 3: Measure Time and Memory Usage
+### Prime Checking
+
+- Early exit for small numbers.
+- 6k ± 1 optimization to reduce the number of iterations.
+- Checking up to the square root boundary for factors.
+
+### Parallel Processing
+
+- Utilizes multiple CPU cores to process numbers concurrently.
+- Lock-free queue for efficient inter-thread communication.
+- Memory pool to manage node allocations and maintain a low memory footprint.
+
+## Makefile
+
+The `Makefile` includes targets for compiling the project and cleaning up generated files.
+
+- `make`: Compiles the project.
+- `make clean`: Cleans up generated executables.
+
+
+
+## Measure Time and Memory Usage
 
 Use the `time` command to measure performance:
 
@@ -99,19 +130,6 @@ time ./randomGenerator 10 10000000 | ./primeCounter
 For the new and improved code:
 ```sh
 time ./randomGenerator 10 10000000 | ./new_primeCounter
-```
-
-## Monitoring Resource Usage
-
-To monitor CPU and memory usage, a Python script (`monitor_resources.py`) is used, which runs the `randomGenerator` and `new_primeCounter`, capturing and displaying resource usage statistics.
-
-
-### Running the Monitoring Script
-To be able to see the live graph:
-
-**Run the Monitoring Script**:
-```sh
-python3 monitor_resources.py
 ```
 
 ## Proofs
