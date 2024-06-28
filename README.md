@@ -114,6 +114,20 @@ To be able to see the live graph:
 python3 monitor_resources.py
 ```
 
+## Proofs
+
+Below are the proofs for the improvements and resource usage:
+
+**Original Prime Counter Memory and CPU Usage:**
+![Original Prime Counter Memory and CPU](https://github.com/roni5604/Prime_Counter_Improvment/raw/main/Proofs/original_primeCounter_Memory_and_CPU.png)
+
+**Print Screen of 10M Numbers Checked by Both Implementations:**
+![Print Screen of 10M Numbers](https://github.com/roni5604/Prime_Counter_Improvment/raw/main/Proofs/printScreen_10M_both_times.png)
+
+**Proof that RAM Usage is Under 2MB:**
+![Proof RAM Usage Under 2MB](https://github.com/roni5604/Prime_Counter_Improvment/raw/main/Proofs/proof_RAM_under_2MB.png)
+
+
 ## Conclusion
 
 This project demonstrates effective utilization of multithreading to improve the performance of a prime number detection algorithm in a continuous data stream. By optimizing the `isPrime` function and parallelizing the processing, significant performance gains were achieved while keeping the memory usage within the specified limits.
