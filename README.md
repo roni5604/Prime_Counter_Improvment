@@ -37,10 +37,7 @@ This file generates a stream of random numbers based on a provided seed and coun
 ### primeCounter.c
 
 This file reads numbers from standard input, checks for prime numbers, and counts them. The original implementation is single-threaded.
-
-**Improvements:**
-- **Optimized `isPrime` Function:** Uses a more efficient algorithm to check for prime numbers.
-- **Multithreading:** Processes the data stream in parallel using multiple threads to utilize all CPU cores efficiently.
+- **`isPrime` Function:** simple check for prime numbers.
 
 **Usage:**
 ```sh
@@ -51,12 +48,29 @@ This file reads numbers from standard input, checks for prime numbers, and count
 ./randomGenerator 10 100 | ./primeCounter
 ```
 
+### new_primeCounter.c
+
+This file reads numbers from standard input, checks for prime numbers, and counts them. The improved implementation with multi-threading.
+
+**Improvements:**
+- **Optimized `isPrime` Function:** Uses a more efficient algorithm to check for prime numbers.
+- **Multithreading:** Processes the data stream in parallel using multiple threads to utilize all CPU cores efficiently.
+
+**Usage:**
+```sh
+./randomGenerator <seed> <count> | ./new_primeCounter
+```
+**Example:**
+```sh
+./randomGenerator 10 100 | ./new_primeCounter
+```
+
 ### Makefile
 
-The Makefile automates the compilation process for both the random number generator and the prime counter.
+The Makefile automates the compilation process for all relevant files: the random number generator, the original prime counter and the improved prime counter (the new).
 
 **Commands:**
-- `make all` - Compiles both `randomGenerator` and `primeCounter`.
+- `make all` - Compiles `randomGenerator`, `primeCounter` and `new_primeCounter`.
 - `make clean` - Cleans up the compiled binaries.
 
 ## Compilation and Execution
@@ -77,32 +91,42 @@ make all
 
 Use the `time` command to measure performance:
 
+For the original code:
 ```sh
 time ./randomGenerator 10 10000000 | ./primeCounter
 ```
 
-Use `top` or `htop` to monitor memory usage during execution.
+For the new and improved code:
+```sh
+time ./randomGenerator 10 10000000 | ./new_primeCounter
+```
 
 ## Monitoring Resource Usage
 
-To monitor CPU and memory usage, a Python script (`monitor_resources.py`) is used, which runs the `randomGenerator` and `primeCounter`, capturing and displaying resource usage statistics.
+To monitor CPU and memory usage, a Python script (`monitor_resources.py`) is used, which runs the `randomGenerator` and `new_primeCounter`, capturing and displaying resource usage statistics.
 
 
 ### Running the Monitoring Script
+To be able to see the live graph:
 
-1. **Run the Monitoring Script**:
-    ```sh
-    python3 monitor_resources.py
-    ```
+**Run the Monitoring Script**:
+```sh
+python3 monitor_resources.py
+```
 
-### Memory Usage
+## Proofs
 
-Use `top` or `htop` to verify that the memory usage stays below 2MB.
+Below are the proofs for the improvements and resource usage:
 
-**Example using `top`:**
-1. Open another terminal.
-2. Run `top`.
-3. Look for the `primeCounter` process and observe its memory usage.
+**Original Prime Counter Memory and CPU Usage:**
+![Original Prime Counter Memory and CPU](https://github.com/roni5604/Prime_Counter_Improvment/raw/main/Proofs/original_primeCounter_Memory_and_CPU.png)
+
+**Print Screen of 10M Numbers Checked by Both Implementations:**
+![Print Screen of 10M Numbers](https://github.com/roni5604/Prime_Counter_Improvment/raw/main/Proofs/printScreen_10M_both_times.png)
+
+**Proof that RAM Usage is Under 2MB:**
+![Proof RAM Usage Under 2MB](https://github.com/roni5604/Prime_Counter_Improvment/raw/main/Proofs/proof_RAM_under_2MB.png)
+
 
 ## Conclusion
 
