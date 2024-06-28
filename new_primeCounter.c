@@ -4,8 +4,6 @@
 #include <pthread.h>
 #include <stdatomic.h>
 #include <unistd.h>
-#include <sys/time.h>
-#include <sys/resource.h>
 #include <sys/sysinfo.h>
 
 #define MAX_QUEUE_SIZE 256 // Adjusted to ensure we stay within 2MB limit with overhead
@@ -103,7 +101,7 @@ void enqueue(Queue *queue, int value) {
 }
 
 // Dequeue operation (lock-free)
-int dequeue(Queue *queue) {
+int dequeue(Queue *queue, Node **dequeuedNode) {
     Node *head;
     while (1) {
         head = queue->head;
@@ -119,7 +117,7 @@ int dequeue(Queue *queue) {
                 int value = next->value;
                 if (__sync_bool_compare_and_swap(&queue->head, head, next)) {
                     atomic_fetch_sub(&queue->size, 1);
-                    free(head);
+                    *dequeuedNode = head;
                     return value;
                 }
             }
@@ -132,15 +130,18 @@ typedef struct {
     Queue *queue;
     atomic_int *total_counter;
     atomic_bool *done;
+    pthread_mutex_t *free_list_lock;
+    Node **free_list_head;
 } PrimeCounterState;
 
 // Worker thread function to count primes
 void* primeCounterWorker(void *arg) {
     PrimeCounterState *state = (PrimeCounterState*)arg;
     int num;
+    Node *dequeuedNode;
 
     while (!atomic_load(state->done) || atomic_load(&state->queue->size) > 0) {
-        num = dequeue(state->queue);
+        num = dequeue(state->queue, &dequeuedNode);
         if (num == -1) {
             usleep(100); // Sleep briefly to avoid busy-waiting
             continue;
@@ -148,6 +149,11 @@ void* primeCounterWorker(void *arg) {
         if (isPrime(num)) {
             atomic_fetch_add(state->total_counter, 1);
         }
+        // Add the dequeued node to the free list
+        pthread_mutex_lock(state->free_list_lock);
+        dequeuedNode->next = *(state->free_list_head);
+        *(state->free_list_head) = dequeuedNode;
+        pthread_mutex_unlock(state->free_list_lock);
     }
     return NULL;
 }
@@ -164,9 +170,12 @@ int main() {
     Queue *queue = createQueue();
     atomic_int total_counter = 0;
     atomic_bool done = false;
+    pthread_mutex_t free_list_lock;
+    pthread_mutex_init(&free_list_lock, NULL);
+    Node *free_list_head = NULL;
 
     // Set up state for worker threads
-    PrimeCounterState state = {queue, &total_counter, &done};
+    PrimeCounterState state = {queue, &total_counter, &done, &free_list_lock, &free_list_head};
 
     // Determine the number of CPU cores
     long numCPU = sysconf(_SC_NPROCESSORS_ONLN);
@@ -211,10 +220,19 @@ int main() {
 
     printf("%d total primes.\n", atomic_load(&total_counter));
 
+    // Free the nodes in the free list
+    Node *node = free_list_head;
+    while (node != NULL) {
+        Node *next = node->next;
+        free(node);
+        node = next;
+    }
+
     // Clean up
     freeQueue(queue);
     free(queue);
     free(threads);
+    pthread_mutex_destroy(&free_list_lock);
 
     return 0;
 }
