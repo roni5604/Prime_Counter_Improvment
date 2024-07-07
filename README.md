@@ -9,8 +9,6 @@ This project aims to create a highly efficient and parallelized prime number cou
 - Efficient random number generation.
 - Optimized prime number checking.
 - Parallel processing using multiple threads.
-- Lock-free queue implementation for efficient inter-thread communication.
-- Memory pool to manage node allocations and maintain a low memory footprint.
 
 ## Files
 
@@ -18,8 +16,7 @@ This project aims to create a highly efficient and parallelized prime number cou
 - `primeCounter.c`: Basic implementation of the prime counter.
 - `new_primeCounter.c`: Optimized and parallelized implementation of the prime counter.
 - `Makefile`: Compilation instructions for the project.
-- `monitor_resources.py`: Python script to monitor CPU and memory usage.
-- `proofs` folder: Contains screenshots proving the solution's efficiency and memory usage.
+- `Proofs` folder: Contains screenshots proving the solution's efficiency and memory usage.
 
 ## Getting Started
 
@@ -85,15 +82,6 @@ Example:
 ./randomGenerator 10 100 | ./new_primeCounter
 ```
 
-### Monitoring Resources
-
-To prove that the solution maintains a low memory footprint and monitors CPU usage, use the `monitor_resources.py` script. This script can be used as follows:
-
-```bash
-python3 monitor_resources.py
-```
-
-Follow the prompts to enter the seed value and the number of random numbers to generate.
 
 ## Optimizations
 
@@ -106,8 +94,7 @@ Follow the prompts to enter the seed value and the number of random numbers to g
 ### Parallel Processing
 
 - Utilizes multiple CPU cores to process numbers concurrently.
-- Lock-free queue for efficient inter-thread communication.
-- Memory pool to manage node allocations and maintain a low memory footprint.
+
 
 ## Makefile
 
@@ -136,14 +123,14 @@ time ./randomGenerator 10 10000000 | ./new_primeCounter
 
 Below are the proofs for the improvements and resource usage:
 
-**Original Prime Counter Memory and CPU Usage:**
-![Original Prime Counter Memory and CPU](https://github.com/roni5604/Prime_Counter_Improvment/raw/main/Proofs/original_primeCounter_Memory_and_CPU.png)
+**Original Prime Counter RAM Memory Usage:**
+![Original Prime Counter RAM Memory Usage](https://github.com/roni5604/Prime_Counter_Improvment/raw/main/Proofs/original_RAM_usage.png)
 
 **Print Screen of 10M Numbers Checked by Both Implementations:**
-![Print Screen of 10M Numbers](https://github.com/roni5604/Prime_Counter_Improvment/raw/main/Proofs/printScreen_10M_both_times.png)
+![Print Screen of 10M Numbers](https://github.com/roni5604/Prime_Counter_Improvment/raw/main/Proofs/proof_under_2MB_RAM_10M_numbers.png)
 
-**Proof that RAM Usage is Under 2MB:**
-![Proof RAM Usage Under 2MB](https://github.com/roni5604/Prime_Counter_Improvment/raw/main/Proofs/proof_RAM_under_2MB.png)
+**Proof that improve RAM usage is under 2MB:**
+![Proof RAM Usage Under 2MB](https://github.com/roni5604/Prime_Counter_Improvment/raw/main/Proofs/proof_under_2MB_RAM_10M_numbers.png)
 
 
 ## Conclusion
