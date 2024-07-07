@@ -4,7 +4,6 @@
 #include <pthread.h>
 #include <unistd.h>
 
-#define MAX_THREADS 4
 #define BUFFER_SIZE 256 
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -62,11 +61,17 @@ void* checkPrime(void* arg) {
 }
 
 int main() {
-    pthread_t threads[MAX_THREADS];
+    // Determine the number of CPU cores
+    long numCPU = sysconf(_SC_NPROCESSORS_ONLN);
+    if (numCPU < 1) {
+        numCPU = 1; // Fallback to at least one thread if detection fails
+    }
+
+    pthread_t *threads = (pthread_t*)malloc(numCPU * sizeof(pthread_t));
     int* buffer = (int*)malloc(BUFFER_SIZE * sizeof(int));
     int num, index = 0, active_threads = 0;
 
-    if (!buffer) {
+    if (!buffer || !threads) {
         fprintf(stderr, "Memory allocation failed\n");
         return 1;
     }
@@ -82,8 +87,8 @@ int main() {
                 return 1;
             }
             index = 0;
-            if (active_threads == MAX_THREADS) {
-                for (int i = 0; i < MAX_THREADS; i++) {
+            if (active_threads == numCPU) {
+                for (int i = 0; i < numCPU; i++) {
                     pthread_join(threads[i], NULL);
                 }
                 active_threads = 0;
@@ -103,5 +108,6 @@ int main() {
     printf("%d total primes.\n", total_primes);
 
     pthread_mutex_destroy(&mutex);
+    free(threads);
     return 0;
 }
