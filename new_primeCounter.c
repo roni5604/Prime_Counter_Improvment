@@ -2,25 +2,13 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <pthread.h>
-#include <stdatomic.h>
 #include <unistd.h>
-#include <sys/sysinfo.h>
 
-#define MAX_QUEUE_SIZE 256 // Adjusted to ensure we stay within 2MB limit with overhead
-#define MEMORY_POOL_SIZE 10000000 // Adjusted based on expected number of nodes
+#define MAX_THREADS 4
+#define BUFFER_SIZE 256 
 
-// Node structure for the queue
-typedef struct Node {
-    int value;
-    struct Node *next;
-} Node;
-
-// Lock-free queue structure
-typedef struct {
-    Node *head;
-    Node *tail;
-    atomic_int size;
-} Queue;
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+int total_primes = 0;
 
 /*
  * Optimized Prime Checking Function
@@ -54,205 +42,66 @@ bool isPrime(int n) {
     return true;
 }
 
-// Initialize the queue
-Queue* createQueue() {
-    Queue *queue = (Queue*)malloc(sizeof(Queue));
-    if (!queue) {
-        fprintf(stderr, "Failed to allocate memory for queue.\n");
-        exit(EXIT_FAILURE);
-    }
-    Node *dummy = (Node*)malloc(sizeof(Node));
-    if (!dummy) {
-        fprintf(stderr, "Failed to allocate memory for dummy node.\n");
-        free(queue); // Ensure memory cleanup
-        exit(EXIT_FAILURE);
-    }
-    dummy->next = NULL;
-    queue->head = queue->tail = dummy;
-    atomic_init(&queue->size, 0);
-    return queue;
-}
+void* checkPrime(void* arg) {
+    int* numbers = (int*)arg;
+    int local_counter = 0;
 
-// Enqueue operation (lock-free)
-void enqueue(Queue *queue, int value) {
-    Node *newNode = (Node*)malloc(sizeof(Node));
-    if (!newNode) {
-        fprintf(stderr, "Failed to allocate memory for new node.\n");
-        exit(EXIT_FAILURE);
-    }
-    newNode->value = value;
-    newNode->next = NULL;
-    Node *tail;
-
-    while (1) {
-        tail = queue->tail;
-        Node *next = tail->next;
-        if (tail == queue->tail) {
-            if (next == NULL) {
-                if (__sync_bool_compare_and_swap(&tail->next, next, newNode)) {
-                    __sync_bool_compare_and_swap(&queue->tail, tail, newNode);
-                    atomic_fetch_add(&queue->size, 1);
-                    return;
-                }
-            } else {
-                __sync_bool_compare_and_swap(&queue->tail, tail, next);
-            }
+    for (int i = 0; i < BUFFER_SIZE; i++) {
+        if (numbers[i] == -1) break;
+        if (isPrime(numbers[i])) {
+            local_counter++;
         }
     }
-}
 
-// Dequeue operation (lock-free)
-int dequeue(Queue *queue, Node **dequeuedNode) {
-    Node *head;
-    while (1) {
-        head = queue->head;
-        Node *tail = queue->tail;
-        Node *next = head->next;
-        if (head == queue->head) {
-            if (head == tail) {
-                if (next == NULL) {
-                    return -1; // Queue is empty
-                }
-                __sync_bool_compare_and_swap(&queue->tail, tail, next);
-            } else {
-                int value = next->value;
-                if (__sync_bool_compare_and_swap(&queue->head, head, next)) {
-                    atomic_fetch_sub(&queue->size, 1);
-                    *dequeuedNode = head;
-                    return value;
-                }
-            }
-        }
-    }
-}
+    pthread_mutex_lock(&mutex);
+    total_primes += local_counter;
+    pthread_mutex_unlock(&mutex);
 
-// Memory pool for nodes
-typedef struct {
-    Node nodes[MEMORY_POOL_SIZE];
-    atomic_int index;
-} MemoryPool;
-
-MemoryPool* createMemoryPool() {
-    MemoryPool *pool = (MemoryPool*)malloc(sizeof(MemoryPool));
-    if (!pool) {
-        fprintf(stderr, "Failed to allocate memory for memory pool.\n");
-        exit(EXIT_FAILURE);
-    }
-    atomic_init(&pool->index, 0);
-    return pool;
-}
-
-Node* allocateNode(MemoryPool *pool) {
-    int idx = atomic_fetch_add(&pool->index, 1);
-    if (idx >= MEMORY_POOL_SIZE) {
-        fprintf(stderr, "Memory pool exhausted.\n");
-        exit(EXIT_FAILURE);
-    }
-    return &pool->nodes[idx];
-}
-
-void freeMemoryPool(MemoryPool *pool) {
-    free(pool);
-}
-
-// Structure to hold the prime counting state
-typedef struct {
-    Queue *queue;
-    atomic_int *total_counter;
-    atomic_bool *done;
-    MemoryPool *memoryPool;
-} PrimeCounterState;
-
-// Worker thread function to count primes
-void* primeCounterWorker(void *arg) {
-    PrimeCounterState *state = (PrimeCounterState*)arg;
-    int num;
-    Node *dequeuedNode;
-
-    while (!atomic_load(state->done) || atomic_load(&state->queue->size) > 0) {
-        num = dequeue(state->queue, &dequeuedNode);
-        if (num == -1) {
-            usleep(10); // Reduce sleep time to avoid busy-waiting
-            continue;
-        }
-        if (isPrime(num)) {
-            atomic_fetch_add(state->total_counter, 1);
-        }
-    }
+    free(numbers);
     return NULL;
 }
 
-void freeQueue(Queue *queue) {
-    while (queue->head != NULL) {
-        Node *temp = queue->head;
-        queue->head = queue->head->next;
-        free(temp);
-    }
-}
-
 int main() {
-    Queue *queue = createQueue();
-    atomic_int total_counter = 0;
-    atomic_bool done = false;
+    pthread_t threads[MAX_THREADS];
+    int* buffer = (int*)malloc(BUFFER_SIZE * sizeof(int));
+    int num, index = 0, active_threads = 0;
 
-    // Create memory pool
-    MemoryPool *memoryPool = createMemoryPool();
-
-    // Set up state for worker threads
-    PrimeCounterState state = {queue, &total_counter, &done, memoryPool};
-
-    // Determine the number of CPU cores
-    long numCPU = sysconf(_SC_NPROCESSORS_ONLN);
-    if (numCPU < 1) {
-        numCPU = 1; // Fallback to at least one thread if detection fails
+    if (!buffer) {
+        fprintf(stderr, "Memory allocation failed\n");
+        return 1;
     }
 
-    // Create worker threads based on the number of CPU cores
-    pthread_t *threads = (pthread_t*)malloc(numCPU * sizeof(pthread_t));
-    if (!threads) {
-        fprintf(stderr, "Failed to allocate memory for threads.\n");
-        free(queue); // Ensure memory cleanup
-        freeMemoryPool(memoryPool);
-        exit(EXIT_FAILURE);
-    }
-    for (long i = 0; i < numCPU; i++) {
-        if (pthread_create(&threads[i], NULL, primeCounterWorker, &state) != 0) {
-            fprintf(stderr, "Failed to create thread %ld.\n", i);
-            free(threads);
-            freeQueue(queue);
-            freeMemoryPool(memoryPool);
-            free(queue);
-            exit(EXIT_FAILURE);
-        }
-    }
-
-    int num;
-    int total_numbers = 0;
     while (scanf("%d", &num) != EOF) {
-        while (atomic_load(&queue->size) >= MAX_QUEUE_SIZE) {
-            usleep(10); // Reduce sleep time to avoid busy-waiting
+        buffer[index++] = num;
+        if (index == BUFFER_SIZE) {
+            int* numbers = buffer;
+            pthread_create(&threads[active_threads++], NULL, checkPrime, (void*)numbers);
+            buffer = (int*)malloc(BUFFER_SIZE * sizeof(int));
+            if (!buffer) {
+                fprintf(stderr, "Memory allocation failed\n");
+                return 1;
+            }
+            index = 0;
+            if (active_threads == MAX_THREADS) {
+                for (int i = 0; i < MAX_THREADS; i++) {
+                    pthread_join(threads[i], NULL);
+                }
+                active_threads = 0;
+            }
         }
-        Node *node = allocateNode(memoryPool);
-        node->value = num;
-        enqueue(queue, node->value);
-        total_numbers++;
     }
 
-    // Signal to threads that processing is done
-    atomic_store(&done, true);
+    if (index > 0) {
+        for (int i = index; i < BUFFER_SIZE; i++) buffer[i] = -1;
+        pthread_create(&threads[active_threads++], NULL, checkPrime, (void*)buffer);
+    }
 
-    // Wait for all threads to finish
-    for (long i = 0; i < numCPU; i++) {
+    for (int i = 0; i < active_threads; i++) {
         pthread_join(threads[i], NULL);
     }
 
-    printf("%d total primes.\n", atomic_load(&total_counter));
+    printf("%d total primes.\n", total_primes);
 
-    // Clean up
-    freeQueue(queue);
-    free(queue);
-    freeMemoryPool(memoryPool);
-    free(threads);
-
+    pthread_mutex_destroy(&mutex);
     return 0;
 }

@@ -2,13 +2,13 @@
 all: generator primeCounter new_primeCounter
 
 generator: generator.c
-	gcc -o randomGenerator generator.c
+	gcc -g -o randomGenerator generator.c
 
 primeCounter: primeCounter.c
-	gcc -o primeCounter primeCounter.c
+	gcc -g -o primeCounter primeCounter.c
 
 new_primeCounter: new_primeCounter.c
-	gcc -o new_primeCounter new_primeCounter.c -pthread
+	gcc -g -o new_primeCounter new_primeCounter.c -pthread
 
 .PHONY: clean
 clean:
