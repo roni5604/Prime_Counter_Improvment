@@ -127,7 +127,7 @@ Below are the proofs for the improvements and resource usage:
 ![Original Prime Counter RAM Memory Usage](https://github.com/roni5604/Prime_Counter_Improvment/raw/main/Proofs/original_RAM_usage.png)
 
 **Print Screen of 10M Numbers Checked by Both Implementations:**
-![Print Screen of 10M Numbers](https://github.com/roni5604/Prime_Counter_Improvment/raw/main/Proofs/proof_under_2MB_RAM_10M_numbers.png)
+![Print Screen of 10M Numbers](https://github.com/roni5604/Prime_Counter_Improvment/raw/main/Proofs/time_compare_10M_numbers.png)
 
 **Proof that improve RAM usage is under 2MB:**
 ![Proof RAM Usage Under 2MB](https://github.com/roni5604/Prime_Counter_Improvment/raw/main/Proofs/proof_under_2MB_RAM_10M_numbers.png)
